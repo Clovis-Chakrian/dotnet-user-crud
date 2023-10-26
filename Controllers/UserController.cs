@@ -1,5 +1,6 @@
 using dotnetCrud.Models;
 using dotnetCrud.Repository;
+using dotnetCrud.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dotnetCrud.Controllers
@@ -8,56 +9,44 @@ namespace dotnetCrud.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-        private readonly IUserRepository _repository;
+        private readonly IUserService _userService;
 
-        public UserController(IUserRepository repository)
+        public UserController(IUserRepository repository, IUserService userService)
         {
-            _repository = repository;
+            _userService = userService;
         }
 
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            var users = await _repository.SearchUsers();
-            return users.Any() ? Ok(users) : NoContent();
+            var users = await _userService.GetUsers();
+            return Ok(users);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var user = await _repository.SearchUser(id);
+            var user = await _userService.GetUserById(id);
             return user != null ? Ok(user) : NotFound($"Nenhum usuário encontrado para o id recebido. Id recebido: {id}");
         }
 
         [HttpPost]
         public async Task<IActionResult> Post(User user)
         {
-            _repository.AddUser(user);
-            return await _repository.SaveChangesAsync() ? Ok("Usuário adicionado com sucesso.") : BadRequest("Erro ao adicionar usuário.");
+            return await _userService.CreateUser(user) ? Ok("Usuário adicionado com sucesso.") : BadRequest("Erro ao adicionar usuário.");
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, User user)
         {
-            var bdUser = await _repository.SearchUser(id);
-            if (bdUser == null) return NotFound($"Usuário de {id} não foi encontrado!");
-
-            bdUser.Name = user.Name ?? bdUser.Name;
-            bdUser.BirthDate = user.BirthDate != new DateTime() ? user.BirthDate : bdUser.BirthDate;
-
-            _repository.UpdateUser(bdUser);
-            return await _repository.SaveChangesAsync() ? Ok($"Usuário de id {id} atualizado com sucesso.") : BadRequest("Erro ao atualizar usuário.");
+            return await _userService.UpdateUser(id, user) ? Ok($"Usuário de id {id} atualizado com sucesso.") : BadRequest("Erro ao atualizar usuário.");
 
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var bdUser = await _repository.SearchUser(id);
-            if (bdUser == null) return NotFound($"Usuário de {id} não foi encontrado!");
-
-            _repository.DeleteUser(bdUser);
-            return await _repository.SaveChangesAsync() ? Ok($"Usuário de id {id} deletado com sucesso.") : BadRequest("Erro ao deletar usuário.");
+            return await _userService.DeleteUser(id) ? Ok($"Usuário de id {id} deletado com sucesso.") : BadRequest("Erro ao deletar usuário.");
         }
     }
 }
